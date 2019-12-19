@@ -1,0 +1,10 @@
+#sudo apt-get install tesseract-ocr
+#sudo apt-get install tesseract-ocr-por
+
+pdf2image # conda install -c conda-forge poppler
+pytesseract 
+cv2 # pip install opencv-python ; apt install -y libsm6
+matplotlib
+imutils
+re
+json

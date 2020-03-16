@@ -1,11 +1,11 @@
-from functions_imports import *
+from import_libs import *
 
 class Mixin:
 
-    def do_opencv_stuff(self):
+    def do_opencv_stuff(self,page_picture):
         
         #turn my page into gray
-        gray = cv2.cvtColor(self.fullpicture, cv2.COLOR_RGB2GRAY)
+        gray = cv2.cvtColor(page_picture, cv2.COLOR_RGB2GRAY)
         #inverting black and white
         _ , binary = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
         #intializing some structures
@@ -19,7 +19,10 @@ class Mixin:
         gradX = cv2.Sobel(tophat, ddepth=cv2.CV_32F, dx=1, dy=0,ksize=-1)
         gradX = np.absolute(gradX)
         (minVal, maxVal) = (np.min(gradX), np.max(gradX))
-        gradX = (255 * ((gradX - minVal) / (maxVal - minVal)))
+        try:
+            gradX = (255 * ((gradX - minVal) / (maxVal - minVal)))
+        except:
+            gradX = (255 * ((int(gradX) - int(minVal)) / (int(maxVal) - int(minVal))))
         gradX = gradX.astype("uint8")
         # apply a closing operation using the rectangular kernel to help
         # cloes gaps in between credit card number digits, then apply
@@ -85,11 +88,11 @@ class Mixin:
         
         for location in locs:
             try:
-                output_text = pytesseract.image_to_string(self.fullpicture[location[1]-10:location[1]+7+location[3],
+                output_text = pytesseract.image_to_string(page_picture[location[1]-10:location[1]+7+location[3],
                                                           location[0]-12:location[0]+15+location[2],:],lang='por',
                                                           config=r'--oem 3 --psm 7')
             except:
-                output_text = pytesseract.image_to_string(self.fullpicture[location[1]:location[1]+location[3],
+                output_text = pytesseract.image_to_string(page_picture[location[1]:location[1]+location[3],
                                                           location[0]:location[0]+location[2],:],lang='por',
                                                           config=r'--oem 3 --psm 7')
             #looking for almost the same line

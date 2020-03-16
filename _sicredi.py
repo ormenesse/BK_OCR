@@ -1,4 +1,4 @@
-from functions_imports import *
+from import_libs import *
 
 class Mixin9:
     
@@ -72,6 +72,8 @@ class Mixin9:
         extrato = {}
         extrato['bank_statement'] = amounts
         extrato['balance'] = balance
+
+        return extrato
         
     def get_information_sicredi(self):
         

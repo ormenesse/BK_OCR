@@ -1,4 +1,4 @@
-from functions_imports import *
+from import_libs import *
 
 class Mixin8:
     
@@ -147,6 +147,10 @@ class Mixin8:
 
         return extrato
     
+    def output_sicoob(self,final_output):
+        
+        return {}
+    
     def get_information_sicoob(self):
         
         pagez = np.array(self.pages[0])[400:600,400:2000,:]
@@ -157,7 +161,7 @@ class Mixin8:
         for line in final_output:
             line = self.remover_acentos(line.lower())
             try:
-                name = re.findall('conta:\s+\S+\s+\/\s+([^;]+)',line)[0]
+                name = re.findall('conta:.+\/\s+([^;]+)',line)[0]
             except:
                 pass
             try:
@@ -165,7 +169,31 @@ class Mixin8:
             except:
                 pass
             try:
-                accountNumber = re.findall('conta:\s+(\S+)',line)[0]
+                accountNumber = re.findall('conta:\s+([\d+\.\-]+)',line)[0]
+            except:
+                pass
+        
+        return name, branchCode, accountNumber
+    
+    def get_information_sicoobpj2(self):
+        
+        pagez = np.array(self.pages[0])[740:900,:,:]
+        final_output = self.do_opencv_partially(pagez)
+        name = ''
+        branchCode = ''
+        accountNumber = ''
+        for line in final_output:
+            line = self.remover_acentos(line.lower())
+            try:
+                name = re.findall('conta:.+-\s+?([^;]+)',line)[0]
+            except:
+                pass
+            try:
+                branchCode = re.findall('coop\.:\s(\d+-\d+)',line)[0]
+            except:
+                pass
+            try:
+                accountNumber = re.findall('conta:\s+([\d+\.\-]+)',line)[0]
             except:
                 pass
         

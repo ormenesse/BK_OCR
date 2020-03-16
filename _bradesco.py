@@ -1,4 +1,4 @@
-from functions_imports import *
+from import_libs import *
 
 class Mixin2:
     
@@ -45,7 +45,7 @@ class Mixin2:
     
     def output_bradescopj2(self,final_output):
         
-        stop_for = set([j if 'Últimos Lançamentos;' in i else 0 for j,i in enumerate(final_output)])
+        stop_for = set([j if 'Ultimos Lançamentos;' in i else 0 for j,i in enumerate(final_output)])
         int_stop_for = len(final_output)
         if max(stop_for) > 0 and max(stop_for) < int_stop_for:
             int_stop_for = max(stop_for)
@@ -59,7 +59,7 @@ class Mixin2:
                 line = self.remover_acentos(line)
                 splited = line.split(';')
 
-                if 'Últimos Lançamentos;' in line:
+                if 'Ultimos Lançamentos;' in line:
                     break
 
                 if bool(re.search('\d{2}/\d{2}/\d{2}',splited[0])):
@@ -127,7 +127,7 @@ class Mixin2:
                 except:
                     pass
                 try:
-                    name = re.findall('(.+)\s+\|\s+cnpj: \d+\.\d+\.\d+\/\d+-\d+',splited)[0]
+                    name = re.findall('(.+)\s+\|\s+(cnpj|cnp\)): \d+\.\d+\.\d+\/\d+-\d+',splited)[0]
                 except:
                     pass
 

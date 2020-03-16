@@ -1,4 +1,4 @@
-from functions_imports import *
+from import_libs import *
 
 class Mixin5:
     
@@ -64,7 +64,7 @@ class Mixin5:
         for line in final_output:
             line = self.remover_acentos(line.lower())
             try:
-                name = re.findall('^cliente:?;([^\|;]+)',line)[0]
+                name = re.findall('^cliente:;?([^\|;]+)',line)[0]
             except:
                 pass
             try:

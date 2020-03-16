@@ -1,4 +1,4 @@
-from functions_imports import *
+from import_libs import *
 
 class Mixin7:
     
@@ -69,6 +69,32 @@ class Mixin7:
             pass
         try:
             accountNumber = re.findall('conta:\s+(\d+)',final_output)[0]
+            accountNumber = accountNumber.replace(' ','')
+        except:
+            pass
+
+        return name, branchCode, accountNumber
+
+    def get_information_santander2(self):
+        
+        pagez = np.array(self.pages[0])[400:600,:,:]
+        final_output = self.do_opencv_partially(pagez)
+        
+        name = ''
+        branchCode = ''
+        accountNumber = ''
+        final_output = self.remover_acentos(''.join(final_output)).lower()
+        try:
+            name = final_output.split(';')[0]
+        except:
+            pass
+        try:
+            branchCode = re.findall('agencia:\s+(\d+)',final_output)[0]
+            branchCode = branchCode.replace(' ','')
+        except:
+            pass
+        try:
+            accountNumber = re.findall('conta\s+corrente:\s+([^;\s]+)',final_output)[0]
             accountNumber = accountNumber.replace(' ','')
         except:
             pass

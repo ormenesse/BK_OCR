@@ -1,4 +1,4 @@
-from functions_imports import *
+from import_libs import *
 
 class Mixin3:
     
@@ -62,16 +62,16 @@ class Mixin3:
         for line in final_output:
             line = self.remover_acentos(line.lower())
             try:
-                name = re.findall('nome:\s([^\|;]+)',line)[0]
+                name = re.findall('nome:\s?([^\|;]+)',line)[0]
             except:
                 pass
             try:
-                branchCode = re.findall('agencia:\s+([^\|;]+)',line)[0]
+                branchCode = re.findall('agencia:\s+?([^\|;]+)',line)[0]
                 branchCode = branchCode.replace(' ','')
             except:
                 pass
             try:
-                accountNumber = re.findall('conta:\s([^\|;]+)',line)[0]
+                accountNumber = re.findall('conta:\s?([^\|;]+)',line)[0]
                 accountNumber = accountNumber.replace(' ','')
             except:
                 pass

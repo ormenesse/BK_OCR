@@ -1,4 +1,4 @@
-from functions_imports import *
+from import_libs import *
 
 class Mixin4:
     
@@ -231,13 +231,72 @@ class Mixin4:
         
         return extrato
     
+    def output_itaupj3(self,final_output):
+        
+        # to json
+        amounts = []
+        balance = []
+        date = ''
+        for line in final_output:
+
+            line = self.remover_acentos(line.lower())
+
+            if bool(re.search('\d{2}/\d{2}/\d{2}',line)):
+
+                date = re.search('\d{2}/\d{2}/\d+',line).group()
+
+            else:
+                splited = line.split(';')
+                try:
+
+                    if 'saldo do dia' in line:
+
+                        day = {}
+                        factor = 1
+                        if '-' in splited[-2]:
+                            factor = -1
+                        day['day'] = {
+                                'date' : datetime.datetime.strptime(date, "%d/%m/%Y").strftime("%Y-%m-%d"),
+                                'amount' : factor*float(re.findall('\d+\.\d+',splited[-2].replace('.','').replace(',','.'))[0])
+                        }
+                        balance.append(day)
+
+                    else:
+                        factor = 1
+                        if '-' in splited[-2]:
+                            factor = -1
+                        adict = {}
+                        adict['transaction'] = {
+                            'date'   : datetime.datetime.strptime(date, "%d/%m/%Y").strftime("%Y-%m-%d"),
+                            'source' : splited[0],
+                            'type'   : ['CREDITO' if factor == 1 else 'DEBITO'][0],
+                            'amount' : factor*float(re.findall('\d+\.\d+',splited[-2].replace('.','').replace(',','.'))[0])
+                        }
+                        amounts.append(adict)
+
+                except Exception as e:
+                    exc_type, exc_obj, tb = sys.exc_info()
+                    f = tb.tb_frame
+                    lineno = tb.tb_lineno
+                    filename = f.f_code.co_filename
+                    linecache.checkcache(filename)
+                    iline = linecache.getline(filename, lineno, f.f_globals)
+                    error = ('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, iline.strip(), exc_obj))
+                    self.logger.error(error + ' on the line' + line)
+
+        extrato = {}
+        extrato['bank_statement'] = amounts
+        extrato['balance'] = balance
+        
+        return extrato
+        
     def get_information_itau(self):
         
         pagez = np.array(self.pages[0])[500:1300,450:2400,:]
         final_output = self.do_opencv_partially(pagez)
         
         try:
-            name = final_output[0].split(';')[1].lower()
+            name = pytesseract.image_to_string(np.array(self.pages[0])[650:720,450:1300,:],lang='por',config=r'--oem 3 --psm 7')
         except:
             name = ''
         branchCode = ''
@@ -273,7 +332,7 @@ class Mixin4:
         except:
             pass
         try:
-            for line in final_output[1].split(';'):
+            for line in final_output[3].split(';'):
                 try:
                     branchCode = re.findall('^(\d+)$',line)[0]
                 except:
@@ -282,6 +341,56 @@ class Mixin4:
                     accountNumber = re.findall('^(\d+-\d+)$',line)[0]
                 except:
                     pass
+        except:
+            pass
+
+        return name, branchCode, accountNumber
+    
+    def get_information_itaupj3(self):
+        
+        final_output = ''
+        
+        try:
+            pagez = np.array(self.pages[0])[610:710,400:2000,:]
+
+            final_output = self.do_opencv_partially(pagez)
+            
+        except:
+            
+            try:
+                
+                pagez = np.array(self.pages[0])[560:650,400:2000,:]
+                
+                final_output = self.do_opencv_partially(pagez)
+                
+            except:
+                
+                pass
+
+        name = ''
+        branchCode = ''
+        accountNumber = ''
+
+        try:
+            name = self.remover_acentos(final_output[0].split(';')[0].lower())
+        except:
+            pass
+        try:
+            for line in final_output:
+                try:
+                    branchCode = re.findall('^(\d+)\/',line)[0]
+                except:
+                    try:
+                        branchCode = re.findall('(\d+)\s+?-',line)[0]
+                    except:
+                        pass
+                try:
+                    accountNumber = re.findall('\/(\d+);?$',line)[0]
+                except:
+                    try:
+                        accountNumber = re.findall('-\s+?(\S+);?$',line)[0]
+                    except:
+                        pass
         except:
             pass
 

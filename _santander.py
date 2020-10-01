@@ -27,7 +27,8 @@ class Mixin7:
                     amounts.append(adict)
                 elif len(splt_line) == 5:
 
-                    adict[datetime.datetime.strptime(splt_line[0], "%d/%m/%Y").strftime("%Y-%m-%d")] = {
+                    adict['transaction'] = {
+                        'date'   : datetime.datetime.strptime(splt_line[0], "%d/%m/%Y").strftime("%Y-%m-%d"),
                         'source' : self.remover_acentos(splt_line[1]),
                         'type'   : ['CREDITO' if '-' not in splt_line[3] else 'DEBITO'][0],
                         'amount' : np.round(float(''.join(re.findall('[\-\d+]',splt_line[3])))/100,2)
@@ -51,7 +52,7 @@ class Mixin7:
     
     def get_information_santander(self):
         
-        pagez = np.array(self.pages[0])[300:500,:,:]
+        pagez = np.array(convert_from_path(self.filenameWithPath,first_page=1,last_page=1,dpi=300)[0])[300:500,:,:]
         final_output = self.do_opencv_partially(pagez)
         
         name = ''
@@ -77,7 +78,7 @@ class Mixin7:
 
     def get_information_santander2(self):
         
-        pagez = np.array(self.pages[0])[400:600,:,:]
+        pagez = np.array(convert_from_path(self.filenameWithPath,first_page=1,last_page=1,dpi=300)[0])[400:600,:,:]
         final_output = self.do_opencv_partially(pagez)
         
         name = ''

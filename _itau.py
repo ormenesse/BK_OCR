@@ -165,8 +165,8 @@ class Mixin4:
             if i == 0 :
                 new_dict_months[j] = str(dict_transf_mes[j])+'/'+str(year)
             else:
-                if dict_transf_mes[meses[i]] > dict_transf_mes[meses[i-1]]:
-                    year = year - 1
+                if dict_transf_mes[meses[i-1]] == 12 and dict_transf_mes[meses[i]] == 1:
+                    year = year + 1
                 new_dict_months[j] = str(dict_transf_mes[j])+'/'+str(year)
                 
         # to json
@@ -185,6 +185,19 @@ class Mixin4:
                     #'21/01/2020;SALDO DO DIA;2.636,75;',
                     if 'SALDO DO DIA' in line:
 
+                        factor = 1
+                        if '-' in splited[-2]:
+                            factor = -1
+
+                        day = {}
+                        day['day'] = {
+                            'date' : datetime.datetime.strptime(log_day, "%d/%m/%Y").strftime("%Y-%m-%d"),
+                            'amount' : factor*float(re.findall('\d+\.\d+',splited[-2].replace('.','').replace(',','.'))[0])
+                        }
+                        balance.append(day)
+                        
+                    elif 'SDO' in line:
+                
                         factor = 1
                         if '-' in splited[-2]:
                             factor = -1
@@ -289,10 +302,83 @@ class Mixin4:
         extrato['balance'] = balance
         
         return extrato
+    
+    def output_itaupj4(self,final_output):
+        
+        # to json
+        amounts = []
+        balance = []
+        date = ''
+
+        year = datetime.datetime.strptime(re.findall('(\d+\/\d+\/\d+)',final_output[0])[0], "%d/%m/%Y").year
+        month = datetime.datetime.strptime(re.findall('(\d+\/\d+\/\d+)',final_output[0])[0], "%d/%m/%Y").month
+
+        for line in final_output:
+
+            line = self.remover_acentos(line.lower())
+
+            splited = line.split(';')
+
+            try:
+
+                if 'saldo' in line:
+
+
+                    if datetime.datetime.strptime(splited[0]+'/'+str(year), "%d/%m/%Y").month == 1 and month == 12:
+
+                        year = year + 1
+
+                    day = {}
+                    factor = 1
+                    if '-' in splited[-2]:
+                        factor = -1
+                    day['day'] = {
+                            'date' : datetime.datetime.strptime(splited[0]+'/'+str(year), "%d/%m/%Y").strftime("%Y-%m-%d"),
+                            'amount' : factor*float(re.findall('\d+\.\d+',splited[-2].replace('.','').replace(',','.'))[0])
+                    }
+                    balance.append(day)
+
+                    month = datetime.datetime.strptime(splited[0]+'/'+str(year), "%d/%m/%Y").month
+
+                else:
+
+                    if datetime.datetime.strptime(splited[0]+'/'+str(year), "%d/%m/%Y").month == 1 and month == 12:
+
+                        year = year + 1
+
+                    factor = 1
+                    if '-' in splited[-2]:
+                        factor = -1
+                    adict = {}
+                    adict['transaction'] = {
+                        'date'   : datetime.datetime.strptime(splited[0]+'/'+str(year), "%d/%m/%Y").strftime("%Y-%m-%d"),
+                        'source' : ' '.join(splited[1:-2]),
+                        'type'   : ['CREDITO' if factor == 1 else 'DEBITO'][0],
+                        'amount' : factor*float(re.findall('\d+\.\d+',splited[-2].replace('.','').replace(',','.'))[0])
+                    }
+                    amounts.append(adict)
+
+                    month = datetime.datetime.strptime(splited[0]+'/'+str(year), "%d/%m/%Y").month
+
+            except Exception as e:
+                exc_type, exc_obj, tb = sys.exc_info()
+                f = tb.tb_frame
+                lineno = tb.tb_lineno
+                filename = f.f_code.co_filename
+                linecache.checkcache(filename)
+                iline = linecache.getline(filename, lineno, f.f_globals)
+                error = ('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, iline.strip(), exc_obj))
+                self.logger.error(error + ' on the line' + line)
+
+        extrato = {}
+        extrato['bank_statement'] = amounts
+        extrato['balance'] = balance
+        
+        return extrato
         
     def get_information_itau(self):
         
-        pagez = np.array(self.pages[0])[500:1300,450:2400,:]
+        pagez = np.array(convert_from_path(self.filenameWithPath,first_page=1,last_page=1,dpi=300)[0])[500:1300,450:2400,:]
         final_output = self.do_opencv_partially(pagez)
         
         try:
@@ -318,8 +404,8 @@ class Mixin4:
     
     def get_information_itaupj2(self):
         
-        pagez1 = np.array(self.pages[0])[500:680,50:700,:]
-        pagez2 = np.array(self.pages[0])[500:680,1050:1700]
+        pagez1 = np.array(convert_from_path(self.filenameWithPath,first_page=1,last_page=1,dpi=300)[0])[500:680,50:700,:]
+        pagez2 = np.array(convert_from_path(self.filenameWithPath,first_page=1,last_page=1,dpi=300)[0])[500:680,1050:1700]
         pagez = np.concatenate((pagez1,pagez2))
         final_output = self.do_opencv_partially(pagez)
         
@@ -351,7 +437,7 @@ class Mixin4:
         final_output = ''
         
         try:
-            pagez = np.array(self.pages[0])[610:710,400:2000,:]
+            pagez = np.array(convert_from_path(self.filenameWithPath,first_page=1,last_page=1,dpi=300)[0])[610:710,400:2000,:]
 
             final_output = self.do_opencv_partially(pagez)
             
@@ -391,6 +477,42 @@ class Mixin4:
                         accountNumber = re.findall('-\s+?(\S+);?$',line)[0]
                     except:
                         pass
+        except:
+            pass
+
+        return name, branchCode, accountNumber
+    
+    def get_information_itaupj4(self):
+        
+        final_output = ''
+        
+        try:
+            pagez = np.array(convert_from_path(self.filenameWithPath,first_page=1,last_page=1,dpi=300)[0])[220:320,10:2000,:]
+
+            final_output = self.do_opencv_partially(pagez)
+            
+        except:
+            
+            pass
+
+        name = ''
+        branchCode = ''
+        accountNumber = ''
+
+        try:
+            name = re.findall('nome:?\s(.+)',self.remover_acentos(final_output[0].split(';')[0].lower()))[0]
+        except:
+            pass
+        try:
+            for line in final_output:
+                try:
+                    branchCode = re.findall('(\d+)\/',line)[0]
+                except:
+                    pass
+                try:
+                    accountNumber = re.findall('\/(\d+-\d+);?$',line)[0]
+                except:
+                    pass
         except:
             pass
 

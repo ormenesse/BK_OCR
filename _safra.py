@@ -76,7 +76,7 @@ class Mixin10:
     
     def get_information_safra(self):
         
-        pagez = np.array(self.pages[0])[350:550,1400:2500,:]
+        pagez = np.array(convert_from_path(self.filenameWithPath,first_page=1,last_page=1,dpi=300)[0])[350:550,1400:2500,:]
         final_output = self.do_opencv_partially(pagez)
         name = ''
         try:

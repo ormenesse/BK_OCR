@@ -83,7 +83,7 @@ class Mixin6:
     def get_information_original(self):
         
         #pagez = np.array(self.pages[0])[500:950,200:1150,:]
-        pagez = np.array(self.pages[0])[500:950,450:1100,:]
+        pagez = np.array(convert_from_path(self.filenameWithPath,first_page=1,last_page=1,dpi=300)[0])[500:950,450:1100,:]
         final_output = self.do_opencv_partially(pagez)
         
         name = ''

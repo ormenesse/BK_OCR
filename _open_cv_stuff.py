@@ -61,11 +61,18 @@ class Mixin:
             w = int(np.round(copylocs[i][2]/10)*10)
             h = int(np.round(copylocs[i][3]/10)*10)
             locs.append((x, y, w, h))
+            
+        
         # sort the square locations 
         locs = sorted(locs, key=operator.itemgetter(1, 0))
         # diff to find the lines.
         diff= []
-        for i in np.arange(0,len(locs)-1):
+        
+        size = 50
+        if self.bank == 'ItadEmpresas' or self.bank == 'nubank' or len(locs[:]) < 50:
+            size = len(locs[:])
+            
+        for i in np.arange(0,size-1):
             # number 6 is just a threshold I decided 
             if locs[i+1][1]-locs[i][1] > 6:
                 diff.append((locs[i+1][1]-locs[i][1]))
@@ -83,9 +90,11 @@ class Mixin:
         y = locs[0][1]
         
         threshold = np.abs(linespace-linestd)
-        if self.bank == 'inter':
+        if self.bank == 'inter' or self.bank == 'neon':
             threshold = linespace+linestd
-        
+        elif self.bank == 'stone':
+            threshold = linespace+1.5*linestd
+            
         for location in locs:
             try:
                 output_text = pytesseract.image_to_string(page_picture[location[1]-10:location[1]+7+location[3],

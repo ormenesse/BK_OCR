@@ -77,7 +77,7 @@ class Mixin9:
         
     def get_information_sicredi(self):
         
-        pagez = np.array(self.pages[0])[450:700,:,:]
+        pagez = np.array(convert_from_path(self.filenameWithPath,first_page=1,last_page=1,dpi=300)[0])[450:700,:,:]
         final_output = self.do_opencv_partially(pagez)
         name = ''
         branchCode = ''

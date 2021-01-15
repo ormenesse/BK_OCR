@@ -57,6 +57,8 @@ class bank_statement_ocr(_open_cv_stuff.Mixin,_bb.Mixin1,_bradesco.Mixin2,
         self.branchCode = None
         self.AccountNumber = None
         self.bankname = None
+        self.metadata = None
+        self.fraud = None
         #logging errors, infos etc.
         self.logger = logging.getLogger('OCR')
         self.hdlr = logging.FileHandler('./OCR.log')
@@ -86,12 +88,14 @@ class bank_statement_ocr(_open_cv_stuff.Mixin,_bb.Mixin1,_bradesco.Mixin2,
             'sicoob4' : (100,180,1120,1350,'SICOOB','SICOOB4'),
             'santander' : (180,270,220,490,'Santander','Santander'),
             'santander2' : (250,370,320,650,'Santander','Santander2'),
+            'santander3' : (190,290,270,540,'‘Santander','Santander3'),
             'bradesco' : (180,400,300,550,'bradesco','bradesco'),
             'bradesco2' : (340,400,300,530,'bradesco','bradesco2'),
             'bradesco3' : (200,250,400,900,'Bradesco Net Empresa','bradesco3'),
             'original' : (380,470,1830,2120,'ORIGINAL','ORIGINAL'),
             'original2' : (100,400,1900,2300,'ORIGINAL','ORIGINAL2'),
             'caixa' : (150,300,100,600,'CAIXA','CAIXA'),
+            'caixapj2' : (240,350,100,600,'CAIXA','CAIXA2'),
             'itau' : (50,230,2000,2400,'ItauEmpresas','ItauEmpresas'),
             'itaupj2' :(300,500,200,600,'ItadEmpresas','ItadEmpresas'),
             'itaupj3' :(200,350,400,900,'ItauEmpresas','ItauEmpresas2'),
@@ -105,8 +109,79 @@ class bank_statement_ocr(_open_cv_stuff.Mixin,_bb.Mixin1,_bradesco.Mixin2,
             'c6bank' : (180,300,100,500, 'C6BANK','C6BANK'),
             'bs2' : (100,250,200,430, 'bs2','bs2'),
             'neon' : (0,180,50,500, 'QNCON','NEON'),
-            'nubank' : (180,350,160,540, 'MU bank','nubank'),
+            'nubank' : (205,350,160,540, 'MU bank','nubank'),
         }
+        
+        # Anti Fraud Detector
+        
+        try:
+        
+            pdf_toread = PdfFileReader(open(self.filenameWithPath, "rb"))
+
+            pdf_info = pdf_toread.getDocumentInfo()
+
+            if pdf_info != None:
+
+                pdf_info = dict(pdf_info)
+
+                for key in pdf_info.keys():
+
+                    pdf_info[key] = str(pdf_info[key])
+
+            del pdf_toread
+
+            if pdf_info.get('/CreationDate') is None:
+
+                pdf_info['/CreationDate'] = 'NaN'
+
+            if pdf_info.get('/ModDate') is None:
+
+                pdf_info['/ModDate'] = pdf_info['/CreationDate']
+
+            if pdf_info.get('/Author') is None:
+
+                pdf_info['/Author'] = 'NaN'
+
+            if pdf_info.get('/Creator') is None:
+
+                pdf_info['/Creator'] = 'NaN'
+
+            if pdf_info.get('/Producer') is None:
+
+                pdf_info['/Producer'] = 'NaN'
+
+            points = 0
+
+            if pdf_info['/ModDate'] != pdf_info['/CreationDate']:
+
+                points = points + 1
+
+            if pdf_info['/Author'] in ['Banco Itaú SA','NaN', '', 'Fiserv'] and points == 1:
+
+                points = points + 1
+
+
+            if not any(x in pdf_info['/Creator'] for x in ['NaN', 'Chromium', 'JasperReports', 'PDFium', 'Componente WDPD', 'pdfmake', 'Mozilla/5.0' ,'IndirectObject']):
+
+                points = points + 2
+
+            if not any(x in pdf_info['/Producer'] for x in ['iText', 'Skia/PDF', 'NaN', 'openhtmltopdf.com', 'iOS', 'PDFium', 'cairo', 'pdfmake', 'Persits', 'GPL', 'PDF', 'PDFlib+PDI', 'PDFCreator', 'IndirectObject', '3-Heights(TM)']):
+
+                points = points + 1
+
+            if any(x in pdf_info['/Producer'] for x in ['www.ilovepdf.com', 'Microsoft:', 'Corel', 'Icecream']):
+
+                points = points + 1
+
+            self.metadata = pdf_info    
+
+            self.fraud = points
+            
+        except:
+            
+            pass
+        
+        # End Anti Fraud Detector
         
         logo = np.array(convert_from_path(self.filenameWithPath,first_page=1,last_page=1,dpi=300)[0])
         
@@ -121,7 +196,7 @@ class bank_statement_ocr(_open_cv_stuff.Mixin,_bb.Mixin1,_bradesco.Mixin2,
             except:
                 ocr_result = None
                 
-            if ocr_result == result:
+            if ocr_result.replace(' ','') == result.replace(' ',''):
                 
                 return result_dup, bk
             
@@ -292,6 +367,28 @@ class bank_statement_ocr(_open_cv_stuff.Mixin,_bb.Mixin1,_bradesco.Mixin2,
             
             self.name, self.branchCode, self.accountNumber = self.get_information_santander2()
             
+        elif self.bank == 'Santander3':
+            
+            final_output = []
+            
+            for i in np.arange(0,self.pageNumber):
+                if i == 0:
+                    page = np.array(convert_from_path(self.filenameWithPath,first_page=i+1,last_page=i+1,dpi=300)[0])[780:-110,:,:]
+                else:
+                    page = np.array(convert_from_path(self.filenameWithPath,first_page=i+1,last_page=i+1,dpi=300)[0])[110:-110,:,:]
+                
+                try:
+                    final_output = final_output + self.do_opencv_stuff(page)
+                except:
+                    #Case pdf page is null
+                    pass
+                
+            self.final_output = final_output
+            
+            self.statement = self.output_santander3(self.final_output)
+            
+            self.name, self.branchCode, self.accountNumber = self.get_information_santander3()
+            
         elif self.bank == 'bradesco' or self.bank == 'bradesco2':
             
             final_output = []
@@ -448,6 +545,66 @@ class bank_statement_ocr(_open_cv_stuff.Mixin,_bb.Mixin1,_bradesco.Mixin2,
             self.statement = self.output_caixa(self.final_output)
             
             self.name, self.branchCode, self.accountNumber = self.get_information_caixa()
+            
+        elif self.bank == 'CAIXA2':
+            
+            final_output = []
+            
+            for i in np.arange(0,self.pageNumber):
+                if i == 0:
+                    page = np.array(convert_from_path(self.filenameWithPath,first_page=i+1,last_page=i+1,dpi=300)[0])
+                    page = np.concatenate((page[600:-100,180:1240,:],page[600:-100,1241:-180,:]))
+                else:
+                    page = np.array(convert_from_path(self.filenameWithPath,first_page=i+1,last_page=i+1,dpi=300)[0])
+                    page = np.concatenate((page[100:-100,180:1240,:],page[100:-100,1241:-180,:]))         
+                try:
+                    
+                    # removing general edges
+                    edges = cv2.Canny(page,0,0,apertureSize = 3)
+                    lines = cv2.HoughLinesP(edges,1,np.pi/180,100,300,5)
+                    for line in lines:
+                        for x1,y1,x2,y2 in line:
+                            if (np.abs(x1-x2))^2+(np.abs(y1-y2))^2 >= 40:
+                                if np.abs(y1 - y2) <= 5:
+                                    #print(x1,y1,x2,y2)
+                                    cv2.line(page,(x1,y1),(page.shape[0],y2),(255,255,255),3)
+                                elif np.abs(x1 - x2) <= 5:
+                                    cv2.line(page,(x1+0,page.shape[1]),(x2+0,y2),(255,255,255),10)
+                                else:
+                                    cv2.line(page,(x1,y1),(x2,y2),(255,255,255),10)
+
+
+                    # Removing Edges 90 degrees
+                    edges = cv2.Canny(page,0,0,apertureSize = 3)
+                    lines = cv2.HoughLinesP(edges,1,np.pi,10,10,1)
+                    for line in lines:
+                        for x1,y1,x2,y2 in line:
+                            if (np.abs(x1-x2))^2+(np.abs(y1-y2))^2 > 20:
+                                #print((np.abs(x1-x2))^2+(np.abs(y1-y2))^2)
+                                cv2.line(page,(x1,y1),(x2,y2),(255,255,255),5)
+
+                    # removing edge 180 degrees
+                    edges = cv2.Canny(page,0,0,apertureSize = 3)
+                    lines = cv2.HoughLinesP(edges,1,np.pi/270,10,10,1)
+                    for line in lines:
+                        for x1,y1,x2,y2 in line:
+                            if (np.abs(x1-x2))^2+(np.abs(y1-y2))^2 > 20:
+                                #print((np.abs(x1-x2))^2+(np.abs(y1-y2))^2)
+                                cv2.line(page,(x1,y1),(x2,y2),(255,255,255),5)           
+                    #
+                    #
+                    final_output = final_output + self.do_opencv_stuff(page)
+                    #
+                except Exception as e:
+                    #Case pdf page is null
+                    print(e)
+                    #pass
+            
+            self.final_output = final_output
+            
+            self.statement = self.output_caixa2(self.final_output)
+            
+            self.name, self.branchCode, self.accountNumber = self.get_information_caixa2()
             
         elif self.bank == 'ItauEmpresas':
             
@@ -834,6 +991,17 @@ class bank_statement_ocr(_open_cv_stuff.Mixin,_bb.Mixin1,_bradesco.Mixin2,
         except:
             self.statement['bankname'] = 'No Bank Found'
             self.logger.error("No bankname found on Filename:" + self.filename)
+            
+        try:
+            self.statement['metadata'] = self.metadata
+        except:
+            self.statement['metadata'] = 'No metadata'
+            self.logger.error("No metadata extracted:" + self.filename)
+            
+        try:
+            self.statement['pointsFraud'] = self.fraud
+        except:
+            self.statement['pointsFraud'] = 0
             
         #loggin info
         self.logger.info('End of OCR transform. filename: ' + self.filename)

@@ -99,21 +99,20 @@ class Mixin15:
         accountNumber = ''
 
         final_output = self.remover_acentos(' '.join(final_output).lower())
-
+        
         try:
             name = re.findall('^([^;]+)',final_output)[0]
         except:
             pass
         try:
-            for line in final_output:
-                try:
-                    branchCode = re.findall('agencia?:?\s+(\d+)',final_output)[0]
-                except:
-                    pass
-                try:
-                    accountNumber = re.findall('conta?:?\s+(\d+-\d+)',final_output)[0]
-                except:
-                    pass
+            try:
+                branchCode = re.findall('agencia?:?\s+(\d+)',''.join(final_output).replace(';',''))[0]
+            except:
+                pass
+            try:
+                accountNumber = re.findall('conta?:?\s+(\d+-\s?\d+)',''.join(final_output).replace(';',''))[0].replace(' ', '')
+            except:
+                pass
         except:
             pass
 

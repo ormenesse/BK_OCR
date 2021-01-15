@@ -28,10 +28,9 @@ def checkBank(filename):
                       region_name = inifile['region_name']
                       )
     try:
-    
-        s3.download_file(Bucket=inifile['bucket'], Key=filename,Filename='./Downloads/'+filename)
-    
         
+        
+        s3.download_file(Bucket=inifile['bucket'], Key=filename,Filename='./Downloads/'+filename)
         # Logo analysis
         
         dict_logos = {
@@ -42,12 +41,14 @@ def checkBank(filename):
             'sicoob4' : (100,180,1120,1350,'SICOOB','SICOOB4'),
             'santander' : (180,270,220,490,'Santander','Santander'),
             'santander2' : (250,370,320,650,'Santander','Santander2'),
+            'santander3' : (190,290,270,540,'‘Santander','Santander3'),
             'bradesco' : (180,400,300,550,'bradesco','bradesco'),
             'bradesco2' : (340,400,300,530,'bradesco','bradesco2'),
             'bradesco3' : (200,250,400,900,'Bradesco Net Empresa','bradesco3'),
             'original' : (380,470,1830,2120,'ORIGINAL','ORIGINAL'),
             'original2' : (100,400,1900,2300,'ORIGINAL','ORIGINAL2'),
             'caixa' : (150,300,100,600,'CAIXA','CAIXA'),
+            'caixapj2' : (240,350,100,600,'CAIXA','CAIXA2'),
             'itau' : (50,230,2000,2400,'ItauEmpresas','ItauEmpresas'),
             'itaupj2' :(300,500,200,600,'ItadEmpresas','ItadEmpresas'),
             'itaupj3' :(200,350,400,900,'ItauEmpresas','ItauEmpresas2'),
@@ -61,7 +62,7 @@ def checkBank(filename):
             'c6bank' : (180,300,100,500, 'C6BANK','C6BANK'),
             'bs2' : (100,250,200,430, 'bs2','bs2'),
             'neon' : (0,180,50,500, 'QNCON','NEON'),
-            'nubank' : (180,350,160,540, 'MU bank','nubank'),
+            'nubank' : (205,350,160,540, 'MU bank','nubank'),
         }
 
         logo = np.array(convert_from_path(pdf_path='./Downloads/'+filename,first_page=1,last_page=1,dpi=300)[0])
@@ -80,7 +81,7 @@ def checkBank(filename):
                 
                 ocr_result = None
             
-            if ocr_result == result:
+            if ocr_result.replace(' ','') == result.replace(' ',''):
             
                 return { 'Bank' : bk }
 
